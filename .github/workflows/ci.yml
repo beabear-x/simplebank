@@ -18,9 +18,9 @@ jobs:
     services:
       mysql:
         image: mysql:latest
-      ports:
-        - 3307:3306
-      options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        ports:
+          - 3307:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
 
     steps:
