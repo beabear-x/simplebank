@@ -18,6 +18,8 @@ jobs:
     services:
       mysql:
         image: mysql:latest
+        env:
+          MYSQL_ROOT_PASSWORD: root
         ports:
           - 3307:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
@@ -33,7 +35,6 @@ jobs:
     
     - name: Set up MySQL
       run: |
-            sudo /etc/init.d/mysql start
             mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
       env:
         DB_DATABASE: simple_bank
