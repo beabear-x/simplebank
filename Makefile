@@ -19,4 +19,7 @@ test:
 server:
 	go run main.go
 
-.PHONY: runsimplebankdb connectdb migrateup migratedown sqlc test server
+mock:
+	mockgen -package mockdb -destination db/mock/store.go github.com/beabear/simplebank/db/sqlc Store
+
+.PHONY: runsimplebankdb connectdb migrateup migratedown sqlc test server mock
