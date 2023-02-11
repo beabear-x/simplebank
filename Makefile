@@ -16,4 +16,7 @@ sqlc:
 test:
 	go test -v -cover ./...
 
-.PHONY: runsimplebankdb connectdb migrateup migratedown sqlc test
+server:
+	go run main.go
+
+.PHONY: runsimplebankdb connectdb migrateup migratedown sqlc test server
