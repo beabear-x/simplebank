@@ -2,15 +2,17 @@ package api
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 
 	db "github.com/beabear/simplebank/db/sqlc"
 	"github.com/gin-gonic/gin"
+	"github.com/go-sql-driver/mysql"
 )
 
 type createAccountRequest struct {
 	Owner    string `json:"owner" binding:"required"`
-	Currency string `json:"currency" binding:"required,oneof=USD EUR"`
+	Currency string `json:"currency" binding:"required,currency"`
 }
 
 func (server *Server) createAccount(ctx *gin.Context) {
@@ -28,11 +30,39 @@ func (server *Server) createAccount(ctx *gin.Context) {
 
 	result, err := server.store.CreateAccount(ctx, arg)
 	if err != nil {
+		if meErr, ok := err.(*mysql.MySQLError); ok {
+			switch meErr.Number {
+			case 1452, 1062:
+				// 1452: foreign_key_violation, 1062: unique_violation
+				ctx.JSON(http.StatusBadRequest, errorResponse(err))
+				return
+			default:
+				log.Printf("Error %d (%s): %s", meErr.Number, meErr.SQLState, meErr.Message)
+			}
+		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, result)
+	accountId, err := result.LastInsertId()
+	if err != nil {
+		if meErr, ok := err.(*mysql.MySQLError); ok {
+			log.Printf("Error %d (%s): %s", meErr.Number, meErr.SQLState, meErr.Message)
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	account, err := server.store.GetAccount(ctx, accountId)
+	if err != nil {
+		if meErr, ok := err.(*mysql.MySQLError); ok {
+			log.Printf("Error %d (%s): %s", meErr.Number, meErr.SQLState, meErr.Message)
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, account)
 }
 
 type getAccountRequest struct {
