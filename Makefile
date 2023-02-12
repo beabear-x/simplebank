@@ -7,8 +7,14 @@ connectdb:
 migrateup:
 	migrate -source "file://db/migration" -database "mysql://root:root@tcp(localhost:3307)/simple_bank" -verbose up
 
+migrateup1:
+	migrate -source "file://db/migration" -database "mysql://root:root@tcp(localhost:3307)/simple_bank" -verbose up 1
+
 migratedown:
 	migrate -source "file://db/migration" -database "mysql://root:root@tcp(localhost:3307)/simple_bank" -verbose down
+
+migratedown1:
+	migrate -source "file://db/migration" -database "mysql://root:root@tcp(localhost:3307)/simple_bank" -verbose down 1
 
 sqlc:
 	sqlc generate
@@ -22,4 +28,4 @@ server:
 mock:
 	mockgen -package mockdb -destination db/mock/store.go github.com/beabear/simplebank/db/sqlc Store
 
-.PHONY: runsimplebankdb connectdb migrateup migratedown sqlc test server mock
+.PHONY: runsimplebankdb connectdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock
