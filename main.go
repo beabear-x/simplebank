@@ -10,12 +10,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-const (
-	dbDriver      = "mysql"
-	dbSource      = "root:root@tcp(127.0.0.1:3307)/simple_bank?parseTime=true"
-	serverAddress = "0.0.0.0:8080"
-)
-
 func main() {
 	config, err := util.LoadConfig(".")
 	if err != nil {
@@ -28,7 +22,10 @@ func main() {
 	}
 
 	store := db.NewStore(conn)
-	server := api.NewServer(store)
+	server, err := api.NewServer(config, store)
+	if err != nil {
+		log.Fatal("cannot create server:", err)
+	}
 
 	err = server.Start(config.ServerAddresss)
 	if err != nil {
