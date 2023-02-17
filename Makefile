@@ -1,5 +1,5 @@
 runsimplebankdb:
-	docker run --name simplebankdb -p 3307:3306 -e MYSQL_ROOT_PASSWORD=root -d mysql:latest
+	docker run --name simplebankdb --network bank_network -p 3307:3306 -e MYSQL_ROOT_PASSWORD=root -d mysql:latest
 
 connectdb:
 	docker exec -it simplebankdb bash
