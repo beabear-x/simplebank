@@ -16,7 +16,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DB_SOURCE=root:root@tcp(mysql:3306)/simple_bank?parseTime=true
+      - DB_SOURCE=root:root@tcp(mysql:3306)/simple_bank?parseTime=true&multiStatements=true
     depends_on:
       mysql:
         condition: service_healthy

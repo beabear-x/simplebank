@@ -13,6 +13,9 @@ import (
 	"github.com/beabear/simplebank/pb"
 	"github.com/beabear/simplebank/util"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -30,9 +33,25 @@ func main() {
 		log.Fatal("cannot connect to db:", err)
 	}
 
+	runDBMigration(config.MigrationURL, config.DBDriver, conn)
+
 	store := db.NewStore(conn)
 	go runGatewayServer(config, store)
 	runGrpcServer(config, store)
+}
+
+func runDBMigration(migrationURL string, dbDriver string, db *sql.DB) {
+	driver, _ := mysql.WithInstance(db, &mysql.Config{})
+	migration, err := migrate.NewWithDatabaseInstance(migrationURL, dbDriver, driver)
+	if err != nil {
+		log.Fatal("cannot create new migrate instance: ", err)
+	}
+
+	if err = migration.Up(); err != nil && err != migrate.ErrNoChange {
+		log.Fatal("failed to run migrate up: ", err)
+	}
+
+	log.Println("db migrated successfully")
 }
 
 func runGrpcServer(config util.Config, store db.Store) {
