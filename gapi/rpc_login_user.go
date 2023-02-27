@@ -51,7 +51,7 @@ func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (
 
 	mtdt := server.extractMetadata(ctx)
 	_, err = server.store.CreateSession(ctx, db.CreateSessionParams{
-		ID:           refreshPayload.ID.String(),
+		ID:           []byte(refreshPayload.ID.String()),
 		Username:     user.Username,
 		RefreshToken: refreshToken,
 		UserAgent:    mtdt.UserAgent,
@@ -62,14 +62,14 @@ func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create session")
 	}
-	session, err := server.store.GetSession(ctx, refreshPayload.ID.String())
+	session, err := server.store.GetSession(ctx, []byte(refreshPayload.ID.String()))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get created session")
 	}
 
 	rsp := &pb.LoginUserResponse{
 		User:                  convertUser(user),
-		SessionId:             session.ID,
+		SessionId:             string(session.ID),
 		AccessToken:           accessToken,
 		RefreshToken:          refreshToken,
 		AccessTokenExpiresAt:  timestamppb.New(accessPayload.ExpiredAt),

@@ -144,7 +144,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	}
 
 	_, err = server.store.CreateSession(ctx, db.CreateSessionParams{
-		ID:           refreshPayload.ID.String(),
+		ID:           []byte(refreshPayload.ID.String()),
 		Username:     user.Username,
 		RefreshToken: refreshToken,
 		UserAgent:    ctx.Request.UserAgent(),
@@ -156,13 +156,13 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	session, err := server.store.GetSession(ctx, refreshPayload.ID.String())
+	session, err := server.store.GetSession(ctx, []byte(refreshPayload.ID.String()))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	sessionID, err := uuid.Parse(session.ID)
+	sessionID, err := uuid.Parse(string(session.ID))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
