@@ -3,9 +3,12 @@ package main
 import (
 	"context"
 	"database/sql"
-	"log"
 	"net"
 	"net/http"
+	"os"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/beabear/simplebank/api"
 	db "github.com/beabear/simplebank/db/sqlc"
@@ -25,12 +28,16 @@ import (
 func main() {
 	config, err := util.LoadConfig(".")
 	if err != nil {
-		log.Fatal("cannot load config:", err)
+		log.Fatal().Err(err).Msg("cannot load config:")
+	}
+
+	if config.Enviroment == "development" {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	}
 
 	conn, err := sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
-		log.Fatal("cannot connect to db:", err)
+		log.Fatal().Err(err).Msg("cannot connect to db:")
 	}
 
 	runDBMigration(config.MigrationURL, config.DBDriver, conn)
@@ -44,42 +51,44 @@ func runDBMigration(migrationURL string, dbDriver string, db *sql.DB) {
 	driver, _ := mysql.WithInstance(db, &mysql.Config{})
 	migration, err := migrate.NewWithDatabaseInstance(migrationURL, dbDriver, driver)
 	if err != nil {
-		log.Fatal("cannot create new migrate instance: ", err)
+		log.Fatal().Err(err).Msg("cannot create new migrate instance: ")
 	}
 
 	if err = migration.Up(); err != nil && err != migrate.ErrNoChange {
-		log.Fatal("failed to run migrate up: ", err)
+		log.Fatal().Err(err).Msg("failed to run migrate up: ")
 	}
 
-	log.Println("db migrated successfully")
+	log.Info().Msg("db migrated successfully")
 }
 
 func runGrpcServer(config util.Config, store db.Store) {
 	server, err := gapi.NewServer(config, store)
 	if err != nil {
-		log.Fatal("cannot create server:", err)
+		log.Fatal().Err(err).Msg("cannot create server:")
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcLogger := grpc.UnaryInterceptor(gapi.GrpcLogger)
+
+	grpcServer := grpc.NewServer(grpcLogger)
 	pb.RegisterSimplebankServer(grpcServer, server)
 	reflection.Register(grpcServer)
 
 	listenner, err := net.Listen("tcp", config.GRPCServerAddresss)
 	if err != nil {
-		log.Fatal("cannot create listenner:", err)
+		log.Fatal().Err(err).Msg("cannot create listenner:")
 	}
 
-	log.Printf("start gRPC server at %s", listenner.Addr().String())
+	log.Info().Msgf("start gRPC server at %s", listenner.Addr().String())
 	err = grpcServer.Serve(listenner)
 	if err != nil {
-		log.Fatal("cannot start gRPC server: ", err)
+		log.Fatal().Err(err).Msg("cannot start gRPC server: ")
 	}
 }
 
 func runGatewayServer(config util.Config, store db.Store) {
 	server, err := gapi.NewServer(config, store)
 	if err != nil {
-		log.Fatal("cannot create server:", err)
+		log.Fatal().Err(err).Msg("cannot create server:")
 	}
 
 	jsonOption := runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{
@@ -98,7 +107,7 @@ func runGatewayServer(config util.Config, store db.Store) {
 
 	err = pb.RegisterSimplebankHandlerServer(ctx, grpcMux, server)
 	if err != nil {
-		log.Fatal("cannot register handler server: ", err)
+		log.Fatal().Err(err).Msg("cannot register handler server: ")
 	}
 
 	mux := http.NewServeMux()
@@ -109,24 +118,24 @@ func runGatewayServer(config util.Config, store db.Store) {
 
 	listenner, err := net.Listen("tcp", config.HTTPServerAddresss)
 	if err != nil {
-		log.Fatal("cannot create listenner: ", err)
+		log.Fatal().Err(err).Msg("cannot create listenner: ")
 	}
 
-	log.Printf("start HTTP gateway server at %s", listenner.Addr().String())
+	log.Info().Msgf("start HTTP gateway server at %s", listenner.Addr().String())
 	err = http.Serve(listenner, mux)
 	if err != nil {
-		log.Fatal("cannot start HTTP gateway server: ", err)
+		log.Fatal().Err(err).Msg("cannot start HTTP gateway server: ")
 	}
 }
 
 func runGinServer(config util.Config, store db.Store) {
 	server, err := api.NewServer(config, store)
 	if err != nil {
-		log.Fatal("cannot create server:", err)
+		log.Fatal().Err(err).Msg("cannot create server:")
 	}
 
 	err = server.Start(config.HTTPServerAddresss)
 	if err != nil {
-		log.Fatal("cannot start server:", err)
+		log.Fatal().Err(err).Msg("cannot start server:")
 	}
 }
