@@ -40,4 +40,7 @@ proto:
 evans:
 	evans -r repl
 
-.PHONY: runsimplebankdb connectdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock proto evans
+redis:
+	docker run --name simplebankredis -p 6379:6379 -d redis:7-alpine
+
+.PHONY: runsimplebankdb connectdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock proto evans redis
